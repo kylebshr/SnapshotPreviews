@@ -62,22 +62,23 @@ extension View {
         return
       }
 
-      if async {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+      // Default delay preserves existing behavior: 2s in async mode, 0s otherwise.
+      // Override with `EMERGE_SNAPSHOT_RENDER_DELAY=<seconds>` to give SwiftUI
+      // `.task` modifiers, async data fetches, and other deferred work time to
+      // complete before capture.
+      let envDelay = ProcessInfo.processInfo
+        .environment["EMERGE_SNAPSHOT_RENDER_DELAY"]
+        .flatMap(Double.init)
+      let delay = envDelay ?? (async ? 2 : 0)
+      DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        if let a11yWrapper, let accessibilityEnabled, accessibilityEnabled, !async {
+          let a11yView = a11yWrapper(controller, window, layout)
+          let result = Self.takeSnapshot(layout: .sizeThatFits, renderingMode: renderingMode, window: window, rootVC: containerVC, targetView: a11yView)
+          a11yView.removeFromSuperview()
+          completion(SnapshotResult(image: result.mapError { $0 }, precision: precision, accessibilityEnabled: accessibilityEnabled, colorScheme: _colorScheme, appStoreSnapshot: appStoreSnapshot))
+        } else {
           let imageResult = Self.takeSnapshot(layout: layout, renderingMode: renderingMode, window: window, rootVC: containerVC, targetView: controller.view)
           completion(SnapshotResult(image: imageResult.mapError { $0 }, precision: precision, accessibilityEnabled: accessibilityEnabled, colorScheme: _colorScheme, appStoreSnapshot: appStoreSnapshot))
-        }
-      } else {
-        DispatchQueue.main.async {
-          if let a11yWrapper, let accessibilityEnabled, accessibilityEnabled {
-            let a11yView = a11yWrapper(controller, window, layout)
-            let result = Self.takeSnapshot(layout: .sizeThatFits, renderingMode: renderingMode, window: window, rootVC: containerVC, targetView: a11yView)
-            a11yView.removeFromSuperview()
-            completion(SnapshotResult(image: result.mapError { $0 }, precision: precision, accessibilityEnabled: accessibilityEnabled, colorScheme: _colorScheme, appStoreSnapshot: appStoreSnapshot))
-          } else {
-            let imageResult = Self.takeSnapshot(layout: layout, renderingMode: renderingMode, window: window, rootVC: containerVC, targetView: controller.view)
-            completion(SnapshotResult(image: imageResult.mapError { $0 }, precision: precision, accessibilityEnabled: accessibilityEnabled, colorScheme: _colorScheme, appStoreSnapshot: appStoreSnapshot))
-          }
         }
       }
     }
