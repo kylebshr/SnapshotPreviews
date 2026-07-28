@@ -62,16 +62,10 @@ extension View {
         return
       }
 
-      // Default delay preserves existing behavior: 2s in async mode, 0s otherwise.
-      // Override with `EMERGE_SNAPSHOT_RENDER_DELAY=<seconds>` to give SwiftUI
-      // `.task` modifiers, async data fetches, and other deferred main-queue work
-      // time to complete before capture. The delay lets the main run loop turn
-      // freely, so multi-hop async chains settle as long as their underlying work
-      // (e.g. mocked networking) completes quickly.
-      let envDelay = ProcessInfo.processInfo
-        .environment["EMERGE_SNAPSHOT_RENDER_DELAY"]
-        .flatMap(Double.init)
-      let delay = envDelay ?? (async ? 2 : 0)
+      // The EMERGE_SNAPSHOT_RENDER_DELAY settle delay is applied by
+      // ExpandingViewController before the view is measured and expanded, so by the
+      // time expansion settles the content is final — capture immediately.
+      let delay: TimeInterval = async ? 2 : 0
       DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
         if let a11yWrapper, let accessibilityEnabled, accessibilityEnabled, !async {
           let a11yView = a11yWrapper(controller, window, layout)
